@@ -2,96 +2,101 @@
 
 const words = {
     nl: {
+        combineLargeNumbers: (largeNumber, number) => `${number} en ${largeNumber}`,
+        notFound: 'Nummer niet gevonden',
+        tooLarge: 'Nummer is te groot',
         0: ['null',],
         1:['', 'een', 'twee', 'drie', 'vier', 'vijf', 'zes', 'zeven', 'acht', 'negen'],
         2:['tien', 'elf', 'twaalf', 'dertien', 'veertien', 'vijftien', 'zestien', 'zeventien', 'achttien', 'negentien'],
-        3: ['', 'honderd', 'duizend', 'miljoen', 'miljard']
+        3: ['', 'tien', 'twintig', 'dertig', 'veertig', 'vijftig', 'zestig', 'zeventig', 'tachtig', 'negentig'],
+        4: ['', 'honderd', 'duizend', 'miljoen', 'miljard']
     },
     en: {
+        combineLargeNumbers: (largeNumber, number, ) => `${largeNumber}${number}`,
+        notFound: 'Number not found',
+        tooLarge: 'Number is too large',
         0: ['zero',],
         1:['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'],
         2:['ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'],
-        3: ['', 'hundred', 'thousand', 'million', 'billion']
+        3: ['', 'ten', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'],
+        4: ['', 'hundred', 'thousand', 'million', 'billion']
     }
 }
 
-const below10 = ['', 'een', 'twee', 'drie', 'vier', 'vijf', 'zes', 'zeven', 'acht', 'negen'];
-const below20 = ['tien', 'elf', 'twaalf', 'dertien', 'veertien', 'vijftien', 'zestien', 'zeventien', 'achttien', 'negentien'];
-const below100 = ['', 'tien', 'twintig', 'dertig', 'veertig', 'vijftig', 'zestig', 'zeventig', 'tachtig', 'negentig'];
-const below1000 = ['', 'honderd', 'duizend', 'miljoen', 'miljard']
+/**
+ * @param {number} value 
+ * @param {string} local 
+ * @returns {string}
+ * @description This function takes a number and a local as input and returns the number in words.
+ * The function supports numbers into the billions.
+ * @example numberToWords(10, 'nl') => "tien"
+ */
+const numberToWords = (value, local) => {
+    const valueAsNumber = Number(value);
 
-const ten = 10
-const twenty = 20
-const hundred = 100;
-const thousand = 1000;
-const million = 1000000;
-const billion = 1000000000;
-const trillion = 1000000000000;
+    if(!words[local]) return 'Language not supported';
+    const selectedWords = words[local];
 
-function numberToWords(value) {
-    const number = Number(value);
-    if(value.length > 13) return 'Number is too large';
-    if(number === 0) return below10[0];
+    if(value.length > 13) return selectedWords.tooLarge;
+    if(value === '0') return selectedWords[0][0];
 
-    const minusModifier = number < 0 ? 'min ' : '';
-    const absoluteNumber = Math.abs(number);
-    if(absoluteNumber < ten) return `${minusModifier}${below10[absoluteNumber]}`;
-    if(absoluteNumber < twenty) return `${minusModifier}${below20[absoluteNumber - 10]}`;
-    if(absoluteNumber < hundred) {
-
-        const numberAsString = String(absoluteNumber)
-        const singleDigit = Number(numberAsString[1])
-        const singleDigitWord = singleDigit ? `${below10[singleDigit]} en ` : '';
-        const doubleDigit = Number(numberAsString[0]);
-        const doubleDigitWord = below100[doubleDigit];
-
-        return `${minusModifier}${singleDigitWord}${doubleDigitWord}`;
+    if(valueAsNumber < 10) return selectedWords[1][valueAsNumber];
+    if(valueAsNumber < 20) return selectedWords[2][valueAsNumber - 10];
+    // below 100
+    if(value.length < 3) return value[1] !== '0' ? selectedWords.combineLargeNumbers(selectedWords[3][value[0]], selectedWords[1][value[1]]): selectedWords[3][value[0]];
+    // below 1000
+    if (value.length < 4) {
+        const hundredModifier = selectedWords[4][1];
+        const hundred = `${selectedWords[1][value[0]]} ${hundredModifier}`;
+        const remainingNumber = value.slice(1);
+        return `${hundred} ${numberToWords(remainingNumber, local)}`
     }
-    if(absoluteNumber < thousand) {
-        const numberAsString = String(absoluteNumber);
-        const hundredsModifier = numberAsString[0] !== '1' ? numberToWords(numberAsString[0]): ''
-        const remainingNumber = numberAsString.slice(1);
-        const afterHundredModifier = numberToWords(remainingNumber);
-
-        return `${minusModifier}${hundredsModifier}${below1000[1]} ${afterHundredModifier.length > 0 ? `en ${afterHundredModifier}` : ''}`;
+    // below million
+    if(value.length < 7) {
+        const hundred = numberToWords(value.slice(value.length - 3), local)
+        const thousandModifier = selectedWords[4][2];
+        const thousand = numberToWords(value.slice(0, value.length - 3), local);
+        return `${thousand} ${thousandModifier} ${hundred}`
     }
-
-    if(absoluteNumber < million) {
-        const numberAsString = String(absoluteNumber);
-        const thousandsModifier = numberToWords(numberAsString.slice(0, numberAsString.length - 3));
-        const remainingNumber = numberAsString.slice(-3);
-        const afterThousandModifier = numberToWords(remainingNumber);
-
-        return `${minusModifier}${thousandsModifier}${below1000[2]} ${afterThousandModifier.length > 0 ? `en ${afterThousandModifier}` : ''}`;
+    // below billion
+    if(value.length < 10) {
+        const thousand = numberToWords(value.slice(value.length - 6), local)
+        const millionModifier = selectedWords[4][3];
+        const million = numberToWords(value.slice(0, value.length - 6), local);
+        return `${million} ${millionModifier} ${thousand}`
     }
-
-    if(absoluteNumber < billion) {
-        const numberAsString = String(absoluteNumber);
-        const millionsModifier = numberToWords(numberAsString.slice(0, numberAsString.length - 6));
-        const remainingNumber = numberAsString.slice(-6);
-        const afterMillionModifier = numberToWords(remainingNumber);
-
-        return `${minusModifier}${millionsModifier}${below1000[3]} ${afterMillionModifier.length > 0 ? `en ${afterMillionModifier}` : ''}`;
-    }
-    if(absoluteNumber < trillion) {
-        const numberAsString = String(absoluteNumber);
-        const billionsModifier = numberToWords(numberAsString.slice(0, numberAsString.length - 9));
-        const remainingNumber = numberAsString.slice(-9);
-        const afterBillionModifier = numberToWords(remainingNumber);
-
-        return `${minusModifier}${billionsModifier}${below1000[4]} ${afterBillionModifier.length > 0 ? `en ${afterBillionModifier}` : ''}`;
+    // below trillion
+    if(value.length < 13) {
+        const million = numberToWords(value.slice(value.length - 9), local)
+        const billionModifier = selectedWords[4][4];
+        const billion = numberToWords(value.slice(0, value.length - 9), local);
+        return `${billion} ${billionModifier} ${million}`
     }
 
+    return 'Number not found'
 }
 
-document.getElementById('number-to-words-button').addEventListener('click',function() {
+
+/**
+ * @description This function executes the numberToWords function and displays the result on the screen
+ * @returns {void}
+ */
+const onClick = () => {
+    const local = document.getElementById('local-select').value || 'nl';
     const number = document.getElementById('number-input').value;
     if(!number) return alert('Please enter a number');
 
-    const hasComma = number.includes('.');
     const splitByComma = number.split('.');
-    const words = numberToWords(splitByComma[0]);
-    const wordsAfterComma = hasComma ? ` comma ${numberToWords(splitByComma[1])}` : '';
+    const words = numberToWords(splitByComma[0], local);
+    const wordsAfterComma = splitByComma[1] ? ` comma ${numberToWords(splitByComma[1],local)}` : '';
 
     document.getElementById('number-to-words-result').innerText = `Result: ${words}${wordsAfterComma}`;
-})
+}
+
+/**
+ * Using an event listenar to listen for the click event on the button
+ * Because of seperation of concers principle 
+ */
+document.getElementById('number-to-words-button').addEventListener('click',onClick)
+
+
